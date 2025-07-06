@@ -1,27 +1,22 @@
-# 1. Frontend build için Node imajı
-FROM node:18 as frontend
+# Multi-stage build for frontend and backend
+
+# Stage 1: Build frontend
+FROM node:18-alpine as frontend-builder
 WORKDIR /app/frontend
+
+# Copy frontend package files
 COPY ../frontend/package*.json ./
-RUN npm install
-COPY ../frontend ./
+
+# Install frontend dependencies
+RUN npm ci --only=production
+
+# Copy frontend source code
+COPY ../frontend/ ./
+
+# Build frontend
 RUN npm run build
 
-# 2. Backend için Python imajı
-FROM python:3.10-slim as backend
-WORKDIR /app
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# 3. Frontend build dosyalarını backend'e kopyala
-COPY --from=frontend /app/frontend/build /app/app/static
-
-# 4. Backend kodunu kopyala
-COPY . /app/app
-
-# 5. Giriş komutu
-CMD ["gunicorn", "-b", "0.0.0.0:5050", "app.run:app"]
-
-# Use Python 3.11 slim image
+# Stage 2: Backend with frontend static files
 FROM python:3.11-slim
 
 # Set environment variables
@@ -38,14 +33,18 @@ RUN apt-get update \
         gcc \
         postgresql-client \
         libpq-dev \
+        curl \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project
+# Copy backend code
 COPY . .
+
+# Copy frontend build files from stage 1
+COPY --from=frontend-builder /app/frontend/build/ ./app/static/
 
 # Create non-root user
 RUN adduser --disabled-password --gecos '' appuser

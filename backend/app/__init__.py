@@ -63,15 +63,6 @@ def create_app(config_name=None):
     from app.utils.ssl_config import configure_ssl
     configure_ssl()
     
-    # React frontend'i sunan universal route
-    @app.route('/', defaults={'path': ''})
-    @app.route('/<path:path>')
-    def serve_react(path):
-        if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
-            return send_from_directory(app.static_folder, path)
-        else:
-            return send_from_directory(app.static_folder, 'index.html')
-    
     # JSON error handlers
     @app.errorhandler(404)
     def not_found(e):
@@ -98,22 +89,19 @@ def create_app(config_name=None):
     def health_check():
         return jsonify({'status': 'healthy', 'message': 'CAPIFY API is running'}), 200
 
-    # Root endpoint with API information
-    @app.route('/')
-    def root():
-        return jsonify({
-            'name': 'CAPIFY API',
-            'version': '1.0.0',
-            'description': 'CAPIFY - Facebook CAPI and GTM Integration Platform',
-            'endpoints': {
-                'health': '/health',
-                'auth': '/api/auth',
-                'user': '/api/user',
-                'facebook': '/api/facebook',
-                'logs': '/api/logs'
-            },
-            'documentation': 'Visit the frontend application for full functionality',
-            'status': 'running'
-        }), 200
+    # React frontend serving route (must be last to catch all non-API routes)
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve_react(path):
+        # Don't serve React for API routes
+        if path.startswith('api/') or path.startswith('health'):
+            return jsonify({'error': 'Not found', 'message': 'API endpoint not found'}), 404
+        
+        # Serve static files if they exist
+        if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+            return send_from_directory(app.static_folder, path)
+        else:
+            # Serve index.html for all other routes (React router)
+            return send_from_directory(app.static_folder, 'index.html')
 
     return app
