@@ -1,11 +1,11 @@
 [phases.setup]
-nixPkgs = ["python311", "python311Packages.pip", "python311Packages.setuptools"]
+nixPkgs = ["python311", "python311Packages.pip"]
 
 [phases.install]
-cmds = ["cd backend && python3 -m pip install --user -r requirements.txt"]
+cmds = ["cd backend && pip install -r requirements.txt"]
 
 [phases.build]
-cmds = ["echo 'Build completed'"]
+cmds = ["echo 'Python build completed'"]
 
 [start]
-cmd = "cd backend && python3 -m gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120" 
+cmd = "cd backend && gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120" 

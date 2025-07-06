@@ -513,15 +513,15 @@ const GtmScripts = ({ domain, tokens = [] }) => {
       if (window.dataLayer) {
         const testEventData = {
           event: 'custom_event',
-          event_name: event.name,
+        event_name: event.name,
           email: 'test@example.com',
           test_event_code: testEventCodes[idx] || 'TEST9705',
           custom_data: {
             test_event: true,
             event_type: event.name
           },
-          gtm_container_id: selectedTokenData.gtm_container_id
-        };
+        gtm_container_id: selectedTokenData.gtm_container_id
+      };
         
         window.dataLayer.push(testEventData);
         setTestResults(r => ({ ...r, [idx]: { success: true, message: 'Başarılı: GTM\'e custom event gönderildi' } }));
