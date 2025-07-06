@@ -70,7 +70,7 @@ try:
     def send_facebook_event(event_name, data, custom_data=None):
         send_event_to_meta(event_name, data, custom_data)
 except Exception:
-    pass
+    pass 
 
 class FacebookEventSender:
     def __init__(self):
