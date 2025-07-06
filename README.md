@@ -296,3 +296,28 @@ For support and questions:
 
 **CAPIFY** - Modern GTM & Facebook CAPI Integration Platform 
 # Railway deploy fix - Sun Jul  6 22:52:06 +03 2025
+
+# CAPIFY 2
+
+A comprehensive Facebook Conversion API and GTM management platform.
+
+## Features
+
+- Facebook Conversion API integration
+- Google Tag Manager verification
+- Real-time event tracking
+- User management and authentication
+- Event logs and monitoring
+
+## Quick Start
+
+1. Clone the repository
+2. Install dependencies
+3. Configure environment variables
+4. Run the application
+
+## Deployment
+
+This application is deployed on Railway with automatic deployments enabled.
+
+<!-- Last deployment: 2025-07-05 -->
