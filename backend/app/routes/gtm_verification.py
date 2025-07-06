@@ -149,66 +149,36 @@ def verify_gtm_verification(verification_id):
         return jsonify({'msg': 'GTM verification already verified'}), 400
     
     try:
-        # Website'de verification token'ı kontrol et
-        protocol = 'https' if verification.domain_name.startswith('https://') else 'http'
-        domain = verification.domain_name.replace('https://', '').replace('http://', '')
-        url = f"{protocol}://{domain}"
-        
-        # Get SSL verify setting
-        ssl_verify = get_ssl_verify_setting()
-        
-        # Website'i kontrol et
-        response = requests.get(url, timeout=10, allow_redirects=True, verify=ssl_verify)
+        # Disable SSL verification for development
+        response = requests.get(verification.domain_name, timeout=10, allow_redirects=True, verify=False)
         
         if response.status_code == 200:
-            # Verification token'ı HTML içinde ara
-            verification_token = verification.verification_token
-            if verification_token in response.text:
+            # Check if the verification script is present in the response
+            if verification.verification_token in response.text:
                 verification.is_verified = True
                 verification.verified_at = datetime.utcnow()
                 db.session.commit()
                 
                 return jsonify({
-                    'msg': 'GTM verification successful',
-                    'verification': {
-                        'id': verification.id,
-                        'domain_name': verification.domain_name,
-                        'gtm_container_id': verification.gtm_container_id,
-                        'is_verified': verification.is_verified,
-                        'verified_at': verification.verified_at.isoformat() if verification.verified_at else None
-                    }
+                    "success": True,
+                    "message": "GTM verification successful",
+                    "verification": verification.to_dict()
                 }), 200
             else:
                 return jsonify({
-                    'msg': 'Verification token not found on website',
-                    'verification_token': verification_token,
-                    'url': url
+                    "success": False,
+                    "message": "Verification script not found on the website"
                 }), 400
         else:
             return jsonify({
-                'msg': f'Website not accessible (HTTP {response.status_code})',
-                'url': url,
-                'status_code': response.status_code
+                "success": False,
+                "message": f"Failed to access website. Status code: {response.status_code}"
             }), 400
             
-    except requests.exceptions.SSLError as e:
-        return jsonify({
-            'msg': 'SSL verification failed',
-            'error': str(e),
-            'url': url
-        }), 400
-        
-    except requests.exceptions.RequestException as e:
-        return jsonify({
-            'msg': 'Failed to access website',
-            'error': str(e),
-            'url': url
-        }), 400
-        
     except Exception as e:
         return jsonify({
-            'msg': 'Verification failed',
-            'error': str(e)
+            "success": False,
+            "message": f"Error verifying GTM: {str(e)}"
         }), 500
 
 @gtm_verification_bp.route('/gtm-verifications/<int:verification_id>/script', methods=['GET'])

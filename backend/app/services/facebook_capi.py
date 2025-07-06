@@ -4,100 +4,68 @@ import os
 from datetime import datetime
 from ..utils.hashing import hash_email, hash_phone, hash_external_id
 from ..utils.logger import EventLogger
-from ..utils.ssl_config import get_ssl_verify_setting
-import urllib3
-
-# Disable SSL warnings for development
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class FacebookCAPI:
-    """Facebook Conversion API service"""
-    
-    def __init__(self, access_token, pixel_id):
-        self.access_token = access_token
-        self.pixel_id = pixel_id
+    def __init__(self):
         self.base_url = "https://graph.facebook.com/v18.0"
         self.logger = EventLogger()
     
-    def send_event(self, event_data, user_id=None):
+    def send_event(self, access_token, pixel_id, event_data):
         """
-        Send event to Facebook Conversion API
+        Send event to Facebook Conversions API
         """
+        url = f"{self.base_url}/{pixel_id}/events"
+        
+        payload = {
+            "data": [event_data],
+            "access_token": access_token,
+            "test_event_code": event_data.get("test_event_code", "")
+        }
+        
+        headers = {
+            "Content-Type": "application/json"
+        }
+        
         try:
-            # Prepare the event payload
-            payload = {
-                "event_name": event_data.get("event_name"),
-                "event_time": event_data.get("event_time"),
-                "user_data": event_data.get("user_data", {}),
-                "custom_data": event_data.get("custom_data", {}),
-                "action_source": event_data.get("action_source", "website"),
-                "event_source_url": event_data.get("event_source_url", ""),
-                "access_token": self.access_token
-            }
-            
-            # Add test event code if present
-            if event_data.get("test_event_code"):
-                payload["test_event_code"] = event_data["test_event_code"]
-            
-            # Get SSL verify setting
-            ssl_verify = get_ssl_verify_setting()
-            
-            # Send request to Facebook API
+            # Disable SSL verification for development
             response = requests.post(
-                f"{self.base_url}/{self.pixel_id}/events",
-                json=payload,
-                timeout=30,
-                verify=ssl_verify,
-                headers={
-                    "Content-Type": "application/json",
-                    "User-Agent": "CAPIFY-CAPI/1.0"
-                }
+                url,
+                data=json.dumps(payload),
+                headers=headers,
+                verify=False,  # Disable SSL verification
+                timeout=30
             )
             
             if response.status_code == 200:
                 result = response.json()
                 self.logger.log_event(
+                    event_type="facebook_capi",
+                    event_data=event_data,
                     event_name=event_data.get("event_name"),
-                    user_id=user_id,
+                    user_id=None,
                     status="success",
                     meta_response=result
                 )
-                return result
+                return {"success": True, "response": result}
             else:
                 error_msg = f"Facebook API error: {response.status_code} - {response.text}"
                 self.logger.log_event(
+                    event_type="facebook_capi",
+                    event_data=event_data,
                     event_name=event_data.get("event_name"),
-                    user_id=user_id,
+                    user_id=None,
                     status="error",
                     error=error_msg
                 )
                 return {"success": False, "error": error_msg}
                 
-        except requests.exceptions.SSLError as e:
-            error_msg = f"SSL Error: {str(e)}"
-            self.logger.log_event(
-                event_name=event_data.get("event_name"),
-                user_id=user_id,
-                status="error",
-                error=error_msg
-            )
-            return {"success": False, "error": error_msg}
-            
-        except requests.exceptions.RequestException as e:
-            error_msg = f"Request Error: {str(e)}"
-            self.logger.log_event(
-                event_name=event_data.get("event_name"),
-                user_id=user_id,
-                status="error",
-                error=error_msg
-            )
-            return {"success": False, "error": error_msg}
-            
         except Exception as e:
-            error_msg = f"Unexpected Error: {str(e)}"
+            error_msg = f"Facebook CAPI exception: {str(e)}"
             self.logger.log_event(
+                event_type="facebook_capi",
+                event_data=event_data,
                 event_name=event_data.get("event_name"),
-                user_id=user_id,
+                user_id=None,
                 status="error",
                 error=error_msg
             )
@@ -237,7 +205,7 @@ class FacebookCAPI:
             'event_time': int(datetime.now().timestamp())
         }
         
-        return self.send_event(event_data, user_id)
+        return self.send_event(self.access_token, self.pixel_id, event_data)
     
     def send_purchase_event(self, user_data, value, currency='USD', content_ids=None, custom_data=None, user_id=None):
         """
@@ -254,7 +222,7 @@ class FacebookCAPI:
             'event_time': int(datetime.now().timestamp())
         }
         
-        return self.send_event(event_data, user_id)
+        return self.send_event(self.access_token, self.pixel_id, event_data)
     
     def send_view_content_event(self, user_data, content_ids=None, content_type='product', custom_data=None, user_id=None):
         """
@@ -269,7 +237,7 @@ class FacebookCAPI:
             'event_time': int(datetime.now().timestamp())
         }
         
-        return self.send_event(event_data, user_id)
+        return self.send_event(self.access_token, self.pixel_id, event_data)
     
     def send_add_to_cart_event(self, user_data, value, currency='USD', content_ids=None, custom_data=None, user_id=None):
         """
@@ -286,4 +254,4 @@ class FacebookCAPI:
             'event_time': int(datetime.now().timestamp())
         }
         
-        return self.send_event(event_data, user_id) 
+        return self.send_event(self.access_token, self.pixel_id, event_data) 
