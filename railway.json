@@ -2,7 +2,7 @@
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
     "builder": "NIXPACKS",
-    "buildCommand": "echo 'Building CAPIFY application...'"
+    "buildCommand": "cd backend && pip install -r requirements.txt"
   },
   "deploy": {
     "startCommand": "cd backend && python3 wsgi.py",
