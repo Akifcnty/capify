@@ -197,149 +197,56 @@ cd capify
 # Use DigitalOcean's managed PostgreSQL and Redis
 ```
 
+### 3. Free Hosting Options
+
+#### Railway
+- **Deploy:** Connect GitHub repository
+- **Database:** PostgreSQL addon
+- **SSL:** Automatic
+- **Cost:** $5 credit/month (usually sufficient)
+
+#### Render
+- **Deploy:** Connect GitHub repository  
+- **Database:** PostgreSQL addon
+- **SSL:** Automatic
+- **Cost:** Free tier available
+
 #### Heroku
-```bash
-# Create Heroku app
-heroku create capify-app
+- **Deploy:** Connect GitHub repository
+- **Database:** PostgreSQL addon
+- **SSL:** Automatic
+- **Cost:** Free tier (550-1000 hours/month)
 
-# Add PostgreSQL addon
-heroku addons:create heroku-postgresql:hobby-dev
+## 📚 Documentation
 
-# Add Redis addon
-heroku addons:create heroku-redis:hobby-dev
-
-# Deploy
-git push heroku main
-```
-
-## 📈 Monitoring & Logging
-
-### Health Checks
-```bash
-# Check API health
-curl http://localhost:5050/health
-
-# Check database
-docker-compose exec backend flask db current
-
-# Check Redis
-docker-compose exec redis redis-cli ping
-```
-
-### Logs
-```bash
-# View all logs
-docker-compose logs -f
-
-# View specific service logs
-docker-compose logs -f backend
-docker-compose logs -f celery-worker
-```
-
-### Metrics
-- **API Response Time**: `/health` endpoint
-- **Database Performance**: PostgreSQL slow query logs
-- **Event Processing**: Celery task monitoring
-- **Error Rates**: Application error logs
+- [API Reference](docs/api_reference.md)
+- [GTM Installation Guide](docs/gtm_installation.md)
+- [Web DataLayer Guide](docs/web_datalayer_guide.md)
 
 ## 🔒 Security
 
-### Security Features
-- ✅ JWT Authentication
-- ✅ Password Hashing (bcrypt)
-- ✅ Rate Limiting
-- ✅ CORS Protection
-- ✅ Security Headers
-- ✅ SQL Injection Protection
-- ✅ XSS Protection
+- JWT Authentication
+- Password Hashing (bcrypt)
+- CORS Protection
+- Rate Limiting
+- Input Validation
+- SQL Injection Protection
 
-### SSL/TLS Setup
-```bash
-# Generate SSL certificate (Let's Encrypt)
-sudo certbot --nginx -d yourdomain.com
+## 📈 Monitoring
 
-# Update nginx.conf with SSL configuration
-# Uncomment SSL section in nginx.conf
-```
-
-## 🛠️ Development
-
-### Local Development
-```bash
-# Backend
-cd backend
-source venv/bin/activate
-flask run --debug
-
-# Frontend
-cd frontend
-npm start
-```
-
-### Testing
-```bash
-# Run tests
-cd backend
-pytest
-
-# Run with coverage
-pytest --cov=app tests/
-```
-
-## 📝 API Documentation
-
-### Authentication
-```bash
-# Login
-POST /api/auth/login
-{
-    "email": "user@example.com",
-    "password": "password"
-}
-
-# Response
-{
-    "access_token": "jwt_token_here"
-}
-```
-
-### Facebook Tokens
-```bash
-# Create token
-POST /api/user/facebook-tokens
-Authorization: Bearer <jwt_token>
-{
-    "gtm_container_id": "GTM-XXXXXXX",
-    "access_token": "facebook_access_token",
-    "dataset_id": "dataset_id",
-    "pixel_id": "pixel_id"
-}
-```
-
-### GTM Events
-```bash
-# Send event
-POST /api/facebook/events/custom
-{
-    "event_name": "Purchase",
-    "gtm_container_id": "GTM-XXXXXXX",
-    "user_data": {
-        "email": "user@example.com"
-    },
-    "custom_data": {
-        "value": 100.00,
-        "currency": "USD"
-    }
-}
-```
+- Real-time Event Logging
+- Performance Metrics
+- Error Tracking
+- Health Checks
+- Backup Automation
 
 ## 🤝 Contributing
 
 1. Fork the repository
-2. Create feature branch
-3. Make changes
+2. Create a feature branch
+3. Make your changes
 4. Add tests
-5. Submit pull request
+5. Submit a pull request
 
 ## 📄 License
 
