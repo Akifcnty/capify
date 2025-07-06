@@ -299,25 +299,46 @@ For support and questions:
 
 # CAPIFY 2
 
-A comprehensive Facebook Conversion API and GTM management platform.
+Facebook Conversion API ve Google Tag Manager entegrasyonu için web uygulaması.
 
-## Features
+## Özellikler
 
-- Facebook Conversion API integration
-- Google Tag Manager verification
-- Real-time event tracking
-- User management and authentication
-- Event logs and monitoring
+- Facebook Conversion API entegrasyonu
+- Google Tag Manager doğrulama
+- GTM event logları
+- Web Data Layer yönetimi
+- Kullanıcı yönetimi ve kimlik doğrulama
 
-## Quick Start
+## Kurulum
 
-1. Clone the repository
-2. Install dependencies
-3. Configure environment variables
-4. Run the application
+### Gereksinimler
+
+- Python 3.8+
+- Node.js 16+
+- PostgreSQL
+
+### Backend Kurulumu
+
+```bash
+cd backend
+python -m venv venv
+source venv/bin/activate  # Windows: venv\Scripts\activate
+pip install -r requirements.txt
+python run.py
+```
+
+### Frontend Kurulumu
+
+```bash
+cd frontend
+npm install
+npm start
+```
 
 ## Deployment
 
-This application is deployed on Railway with automatic deployments enabled.
+Bu uygulama Railway üzerinde deploy edilmiştir.
+
+**Son güncelleme:** 2025-07-06 - Frontend build dosyaları backend static klasörüne kopyalandı
 
 <!-- Last deployment: 2025-07-05 -->
