@@ -1,5 +1,6 @@
 import requests
 import json
+import os
 from datetime import datetime
 from ..utils.hashing import hash_email, hash_phone, hash_external_id
 from ..utils.logger import EventLogger
@@ -136,11 +137,23 @@ class FacebookCAPI:
             'Content-Type': 'application/json'
         }
         
+        # SSL verification ayarı
+        verify_ssl = True
+        ca_bundle = os.environ.get('REQUESTS_CA_BUNDLE')
+        if ca_bundle and os.path.exists(ca_bundle):
+            verify_ssl = ca_bundle
+        elif os.environ.get('FLASK_ENV') == 'production':
+            # Production'da varsayılan SSL verification
+            verify_ssl = True
+        else:
+            # Development'ta SSL verification'ı devre dışı bırak
+            verify_ssl = False
+        
         response = requests.post(
             url,
             data=json.dumps(payload),
             headers=headers,
-            verify=False  # TLS sertifika doğrulamasını devre dışı bırak
+            verify=verify_ssl
         )
         
         if response.status_code != 200:

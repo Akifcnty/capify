@@ -6,6 +6,7 @@ from ..extensions import db
 import requests
 import re
 import urllib3
+import os
 
 # TLS uyarılarını kapat
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -151,8 +152,20 @@ def verify_gtm_verification(verification_id):
         
         url = f"{protocol}://{domain}"
         
-        # Website'i kontrol et - TLS sertifika sorununu çöz
-        response = requests.get(url, timeout=10, allow_redirects=True, verify=False)
+        # SSL verification ayarı
+        verify_ssl = True
+        ca_bundle = os.environ.get('REQUESTS_CA_BUNDLE')
+        if ca_bundle and os.path.exists(ca_bundle):
+            verify_ssl = ca_bundle
+        elif os.environ.get('FLASK_ENV') == 'production':
+            # Production'da varsayılan SSL verification
+            verify_ssl = True
+        else:
+            # Development'ta SSL verification'ı devre dışı bırak
+            verify_ssl = False
+        
+        # Website'i kontrol et
+        response = requests.get(url, timeout=10, allow_redirects=True, verify=verify_ssl)
         
         if response.status_code == 200:
             # Verification token'ı HTML içinde ara

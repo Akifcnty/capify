@@ -8,7 +8,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = f'sqlite:///{os.path.join(os.path.dirname(os.path.dirname(__file__)), "instance", "app.db")}'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY', 'jwt-secret-key-change-in-production')
-    JWT_ACCESS_TOKEN_EXPIRES = False  # Token süresiz (geliştirme için)
+    JWT_ACCESS_TOKEN_EXPIRES = int(os.environ.get('JWT_ACCESS_TOKEN_EXPIRES', 3600))  # 1 saat varsayılan
     JWT_TOKEN_LOCATION = ['headers']
     JWT_HEADER_NAME = 'Authorization'
     JWT_HEADER_TYPE = 'Bearer'
@@ -29,6 +29,8 @@ class Config:
     FACEBOOK_ACCESS_TOKEN = os.environ.get('FACEBOOK_ACCESS_TOKEN', 'your-access-token')
     FACEBOOK_DATASET_ID = os.environ.get('FACEBOOK_DATASET_ID', 'your-dataset-id')
     FACEBOOK_PIXEL_ID = os.environ.get('FACEBOOK_PIXEL_ID', 'your-pixel-id')
+    FACEBOOK_API_VERSION = os.environ.get('FACEBOOK_API_VERSION', 'v18.0')
+    FACEBOOK_GRAPH_URL = os.environ.get('FACEBOOK_GRAPH_URL', 'https://graph.facebook.com')
 
     CELERY_BROKER_URL = 'redis://localhost:6379/0'
     CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
@@ -37,6 +39,14 @@ class Config:
     RATELIMIT_STORAGE_URL = "memory://"  # Memory-based storage (production'da Redis kullanılabilir)
     RATELIMIT_DEFAULT = "100 per minute"  # Varsayılan limit
     RATELIMIT_HEADERS_ENABLED = True  # Rate limit bilgilerini header'larda göster
+
+    # Logging ayarları
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+    LOG_FILE = os.environ.get('LOG_FILE', 'logs/app.log')
+
+    # TLS/SSL Configuration
+    REQUESTS_CA_BUNDLE = os.environ.get('REQUESTS_CA_BUNDLE', None)
+    SSL_CERT_FILE = os.environ.get('SSL_CERT_FILE', None)
 
 class DevelopmentConfig(Config):
     DEBUG = True
@@ -72,10 +82,14 @@ class ProductionConfig(Config):
     # Security headers
     SECURE_HEADERS = {
         'STRICT_TRANSPORT_SECURITY': 'max-age=31536000; includeSubDomains',
-        'X_CONTENT_TYPE_OPTIONS': 'nosniff',
-        'X_FRAME_OPTIONS': 'SAMEORIGIN',
-        'X_XSS_PROTECTION': '1; mode=block',
+        'X_CONTENT_TYPE_OPTIONS': os.environ.get('SECURE_HEADERS_X_CONTENT_TYPE_OPTIONS', 'nosniff'),
+        'X_FRAME_OPTIONS': os.environ.get('SECURE_HEADERS_X_FRAME_OPTIONS', 'SAMEORIGIN'),
+        'X_XSS_PROTECTION': os.environ.get('SECURE_HEADERS_X_XSS_PROTECTION', '1; mode=block'),
     }
+
+    # Railway TLS/SSL Configuration
+    REQUESTS_CA_BUNDLE = os.environ.get('REQUESTS_CA_BUNDLE', '/etc/ssl/certs/ca-certificates.crt')
+    SSL_CERT_FILE = os.environ.get('SSL_CERT_FILE', '/etc/ssl/certs/ca-certificates.crt')
 
 class TestingConfig(Config):
     TESTING = True

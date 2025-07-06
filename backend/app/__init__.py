@@ -18,6 +18,32 @@ limiter = Limiter(
     storage_uri="memory://"
 )
 
+def configure_ssl():
+    """
+    Railway deployment için TLS/SSL konfigürasyonunu ayarlar
+    """
+    try:
+        # Environment variables'dan SSL ayarlarını al
+        ca_bundle = os.environ.get('REQUESTS_CA_BUNDLE')
+        cert_file = os.environ.get('SSL_CERT_FILE')
+        
+        # Railway Linux environment için varsayılan değerler
+        if not ca_bundle:
+            ca_bundle = '/etc/ssl/certs/ca-certificates.crt'
+        if not cert_file:
+            cert_file = '/etc/ssl/certs/ca-certificates.crt'
+        
+        # Environment variables'ı ayarla
+        os.environ['REQUESTS_CA_BUNDLE'] = ca_bundle
+        os.environ['SSL_CERT_FILE'] = cert_file
+        
+        print(f"SSL Configuration: CA_BUNDLE={ca_bundle}, CERT_FILE={cert_file}")
+        
+    except Exception as e:
+        print(f"SSL Configuration Error: {str(e)}")
+        # Fallback: varsayılan SSL davranışını kullan
+        pass
+
 def create_app(config_name=None):
     if config_name is None:
         config_name = os.environ.get('FLASK_ENV', 'development')
@@ -28,6 +54,10 @@ def create_app(config_name=None):
     
     # Configuration
     app.config.from_object(config[config_name])
+    
+    # SSL Configuration (Railway için)
+    if config_name == 'production':
+        configure_ssl()
     
     # Initialize extensions
     CORS(app, resources={r"/*": {"origins": app.config['CORS_ORIGINS']}}, supports_credentials=True)
