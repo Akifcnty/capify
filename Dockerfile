@@ -16,6 +16,9 @@ COPY frontend/ ./
 # Build frontend
 RUN npm run build
 
+# Debug: List build contents
+RUN echo "=== Frontend build contents ===" && ls -la /app/frontend/build/
+
 # Stage 2: Backend with frontend static files
 FROM python:3.11-slim
 
@@ -34,6 +37,7 @@ RUN apt-get update \
         postgresql-client \
         libpq-dev \
         curl \
+        tree \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
@@ -46,8 +50,10 @@ COPY backend/ .
 # Copy frontend build files from stage 1
 COPY --from=frontend-builder /app/frontend/build/ ./app/static/
 
-# List contents to verify files were copied
-RUN ls -la ./app/static/ && ls -la ./app/static/static/ || echo "Static files not found"
+# Debug: List contents to verify files were copied
+RUN echo "=== Static folder contents ===" && ls -la ./app/static/
+RUN echo "=== Static/static folder contents ===" && ls -la ./app/static/static/ || echo "Static/static folder not found"
+RUN echo "=== Full directory tree ===" && tree ./app/static/ || echo "Tree command not available"
 
 # Create non-root user
 RUN adduser --disabled-password --gecos '' appuser
