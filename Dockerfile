@@ -1,50 +1,65 @@
-# Use Python 3.11 slim image
-FROM python:3.11-slim
+# Multi-stage build for frontend and backend
 
-# Set working directory
-WORKDIR /app
-
-# Install system dependencies including Node.js
-RUN apt-get update && apt-get install -y \
-    gcc \
-    curl \
-    && curl -fsSL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy backend requirements first for better caching
-COPY backend/requirements.txt .
-
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Stage 1: Build frontend
+FROM node:18-alpine as frontend-builder
+WORKDIR /app/frontend
 
 # Copy frontend package files
-COPY frontend/package*.json ./frontend/
+COPY frontend/package*.json ./
 
 # Install frontend dependencies
-WORKDIR /app/frontend
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy frontend source code
-COPY frontend/ .
+COPY frontend/ ./
 
 # Build frontend
 RUN npm run build
 
-# Create backend app directory and copy built frontend to static
-WORKDIR /app
-RUN mkdir -p app/static
-RUN cp -r frontend/build/* app/static/
-
-# Copy backend application code
-COPY backend/ .
+# Stage 2: Backend with frontend static files
+FROM python:3.11-slim
 
 # Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 ENV FLASK_ENV=production
-ENV PYTHONPATH=/app
+
+# Set work directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends \
+        gcc \
+        postgresql-client \
+        libpq-dev \
+        curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy backend code
+COPY backend/ .
+
+# Copy frontend build files from stage 1
+COPY --from=frontend-builder /app/frontend/build/ ./app/static/
+
+# List contents to verify files were copied
+RUN ls -la ./app/static/ && ls -la ./app/static/static/ || echo "Static files not found"
+
+# Create non-root user
+RUN adduser --disabled-password --gecos '' appuser
+RUN chown -R appuser:appuser /app
+USER appuser
 
 # Expose port
 EXPOSE 5050
 
+# Health check
+HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:5050/health || exit 1
+
 # Run the application
-CMD ["python3", "wsgi.py"] 
+CMD ["gunicorn", "--config", "gunicorn.conf.py", "wsgi:app"] 
