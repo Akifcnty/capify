@@ -1,10 +1,10 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "DOCKERFILE"
   },
   "deploy": {
-    "startCommand": "cd backend && python3 -m gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120",
+    "startCommand": "python3 -m gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120",
     "healthcheckPath": "/health",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE",
