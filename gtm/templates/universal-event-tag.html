@@ -1,0 +1,263 @@
+<!-- Capify Facebook CAPI Universal Event Tag -->
+<!-- This template should be used as a Custom HTML tag in Google Tag Manager -->
+
+<script>
+(function() {
+  'use strict';
+  
+  // Configuration - Get from Capify software
+  const getApiUrl = () => {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5050';
+    }
+    return `https://www.${hostname}`;
+  };
+  
+  const CAPIFY_API_URL = getApiUrl();
+  
+  // Get GTM Container ID from Capify software
+  const getContainerIdFromCapify = async () => {
+    try {
+      // First, try to get all GTM verifications from Capify
+      const response = await fetch(`${CAPIFY_API_URL}/api/user/gtm-verifications`);
+      if (!response.ok) throw new Error('Failed to fetch GTM verifications');
+      
+      const verifications = await response.json();
+      const verifiedContainer = verifications.find(v => v.is_verified);
+      
+      if (verifiedContainer) {
+        return verifiedContainer.container_id;
+      }
+      
+      throw new Error('No verified GTM container found');
+    } catch (error) {
+      console.error('Capify: Failed to get container ID:', error);
+      return null;
+    }
+  };
+  
+  // SHA256 Hashing Function
+  async function sha256(message) {
+    if (!message) return null;
+    const msgBuffer = new TextEncoder().encode(message);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    return hashHex;
+  }
+  
+  // Cache for token info
+  let tokenInfoCache = null;
+  let tokenInfoPromise = null;
+  
+  // Get Token Info from Capify (cached)
+  async function getTokenInfo(containerId) {
+    // Return cached token if available
+    if (tokenInfoCache) {
+      return tokenInfoCache;
+    }
+    
+    // If already fetching, wait for that promise
+    if (tokenInfoPromise) {
+      return await tokenInfoPromise;
+    }
+    
+    // Fetch token info
+    tokenInfoPromise = (async () => {
+      try {
+        const response = await fetch(`${CAPIFY_API_URL}/api/facebook/token-info/${containerId}`);
+        if (!response.ok) throw new Error('Token not found');
+        const tokenInfo = await response.json();
+        
+        // Cache the token info
+        tokenInfoCache = tokenInfo;
+        console.log('Capify: Token info cached successfully');
+        
+        return tokenInfo;
+      } catch (error) {
+        console.error('Capify: Token info fetch failed:', error);
+        tokenInfoPromise = null; // Reset promise on error
+        return null;
+      }
+    })();
+    
+    return await tokenInfoPromise;
+  }
+  
+  // Prepare User Data with SHA256 Hashing
+  async function prepareUserData(eventData) {
+    const userData = {};
+    
+    // Hash user identifiers
+    if (eventData.email) {
+      userData.em = [await sha256(eventData.email.toLowerCase().trim())];
+    }
+    if (eventData.phone) {
+      userData.ph = [await sha256(eventData.phone.replace(/[^0-9]/g, ''))];
+    }
+    if (eventData.fn) {
+      userData.fn = [await sha256(eventData.fn.toLowerCase().trim())];
+    }
+    if (eventData.ln) {
+      userData.ln = [await sha256(eventData.ln.toLowerCase().trim())];
+    }
+    if (eventData.ge) {
+      userData.ge = [await sha256(eventData.ge.toLowerCase().trim())];
+    }
+    if (eventData.db) {
+      userData.db = [await sha256(eventData.db)];
+    }
+    if (eventData.ct) {
+      userData.ct = [await sha256(eventData.ct.toLowerCase().trim())];
+    }
+    if (eventData.st) {
+      userData.st = [await sha256(eventData.st.toLowerCase().trim())];
+    }
+    if (eventData.zp) {
+      userData.zp = [await sha256(eventData.zp)];
+    }
+    if (eventData.country) {
+      userData.country = [await sha256(eventData.country.toLowerCase().trim())];
+    }
+    if (eventData.external_id) {
+      userData.external_id = [await sha256(eventData.external_id.toString())];
+    }
+    
+    // Non-hashed data
+    if (eventData.client_ip_address) {
+      userData.client_ip_address = eventData.client_ip_address;
+    }
+    if (eventData.client_user_agent) {
+      userData.client_user_agent = eventData.client_user_agent;
+    }
+    if (eventData.fbc) {
+      userData.fbc = eventData.fbc;
+    }
+    if (eventData.fbp) {
+      userData.fbp = eventData.fbp;
+    }
+    
+    return userData;
+  }
+  
+  // Send Event to Meta CAPI
+  async function sendEventToMeta(eventName, eventData) {
+    try {
+      // Get container ID
+      const containerId = await getContainerIdFromCapify();
+      if (!containerId) {
+        console.error('Capify: Could not get container ID');
+        return;
+      }
+      
+      // Get token info
+      const tokenInfo = await getTokenInfo(containerId);
+      if (!tokenInfo) {
+        console.error('Capify: Could not get token info');
+        return;
+      }
+      
+      // Prepare user data
+      const userData = await prepareUserData(eventData);
+      
+      // Build payload
+      const payload = {
+        data: [{
+          event_name: eventName,
+          event_time: Math.floor(Date.now() / 1000),
+          action_source: 'website',
+          event_source_url: window.location.href.includes('www.') ? 
+            window.location.href : 
+            window.location.href.replace('://', '://www.'),
+          user_data: userData,
+          custom_data: eventData.custom_data || {}
+        }],
+        access_token: tokenInfo.access_token
+      };
+      
+      // Add test event code if provided
+      if (eventData.test_event_code) {
+        payload.data[0].test_event_code = eventData.test_event_code;
+      }
+      
+      // Send to Meta
+      const response = await fetch(`https://graph.facebook.com/v18.0/${tokenInfo.pixel_id}/events`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      const result = await response.json();
+      
+      if (response.ok) {
+        console.log('Capify: Event sent to Meta successfully:', result);
+      } else {
+        console.error('Capify: Meta API error:', result);
+      }
+      
+    } catch (error) {
+      console.error('Capify: Event send failed:', error);
+    }
+  }
+  
+  // Event Data from GTM Data Layer
+  const eventData = {
+    // User identifiers (will be hashed)
+    email: '{{DLV - email}}' || null,
+    phone: '{{DLV - phone}}' || null,
+    fn: '{{DLV - fn}}' || null,
+    ln: '{{DLV - ln}}' || null,
+    ge: '{{DLV - ge}}' || null,
+    db: '{{DLV - db}}' || null,
+    ct: '{{DLV - ct}}' || null,
+    st: '{{DLV - st}}' || null,
+    zp: '{{DLV - zp}}' || null,
+    country: '{{DLV - country}}' || null,
+    external_id: '{{DLV - external_id}}' || null,
+    
+    // System data (not hashed)
+    client_ip_address: '{{DLV - client_ip_address}}' || null,
+    client_user_agent: '{{DLV - client_user_agent}}' || null,
+    fbc: '{{DLV - fbc}}' || null,
+    fbp: '{{DLV - fbp}}' || null,
+    
+    // Test event code
+    test_event_code: '{{DLV - test_event_code}}' || null,
+    
+    // Custom data based on event type
+    custom_data: {
+      value: '{{DLV - value}}' || null,
+      currency: '{{DLV - currency}}' || null,
+      content_ids: '{{DLV - content_ids}}' || null,
+      contents: '{{DLV - contents}}' || [],
+      order_id: '{{DLV - order_id}}' || null,
+      search_string: '{{DLV - search_string}}' || null,
+      registration_method: '{{DLV - registration_method}}' || null,
+      form_id: '{{DLV - form_id}}' || null,
+      lead_type: '{{DLV - lead_type}}' || null,
+      contact_method: '{{DLV - contact_method}}' || null,
+      predicted_ltv: '{{DLV - predicted_ltv}}' || null,
+      delivery_category: '{{DLV - delivery_category}}' || null
+    }
+  };
+  
+  // Send the event
+  sendEventToMeta('{{Event Name}}', eventData);
+  
+  // Clear token cache (useful for testing or token updates)
+  function clearTokenCache() {
+    tokenInfoCache = null;
+    tokenInfoPromise = null;
+    console.log('Capify: Token cache cleared');
+  }
+  
+  // Make functions globally available for manual calls
+  window.capifySendEvent = sendEventToMeta;
+  window.capifyClearCache = clearTokenCache;
+  
+  console.log('Capify: Event script loaded successfully');
+})();
+</script> 
