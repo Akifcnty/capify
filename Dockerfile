@@ -12,7 +12,7 @@ RUN apt-get update && apt-get install -y \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first for better caching
+# Copy backend requirements first for better caching
 COPY backend/requirements.txt .
 
 # Install Python dependencies
@@ -31,13 +31,12 @@ COPY frontend/ .
 # Build frontend
 RUN npm run build
 
-# Copy built frontend to backend static directory
-RUN cp -r build/* ../app/static/
-
-# Switch back to backend directory
+# Create backend app directory and copy built frontend to static
 WORKDIR /app
+RUN mkdir -p app/static
+RUN cp -r frontend/build/* app/static/
 
-# Copy application code
+# Copy backend application code
 COPY backend/ .
 
 # Set environment variables
