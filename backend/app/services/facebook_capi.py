@@ -187,19 +187,15 @@ class FacebookCAPI:
         }
         
         # SSL verification ayarı - dinamik olarak al
-        ca_bundle = os.environ.get('REQUESTS_CA_BUNDLE') or os.environ.get('SSL_CERT_FILE') or certifi.where()
-        
-        # CA bundle yolunun geçerli olup olmadığını kontrol et
-        if not os.path.exists(ca_bundle):
-            # Geçerli değilse certifi'nin varsayılan yolunu kullan
-            ca_bundle = certifi.where()
+        from ..utils.ssl_config import get_ssl_verify_setting
+        ssl_verify = get_ssl_verify_setting()
         
         try:
             response = requests.post(
                 url,
                 data=json.dumps(payload),
+                verify=ssl_verify,
                 headers=headers,
-                verify=ca_bundle,
                 timeout=30
             )
             
