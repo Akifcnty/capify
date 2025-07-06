@@ -8,12 +8,12 @@ WORKDIR /app/frontend
 COPY ../frontend/package*.json ./
 
 # Install frontend dependencies
-RUN npm ci --only=production
+RUN npm ci
 
 # Copy frontend source code
 COPY ../frontend/ ./
 
-# Build frontend
+# Build frontend with verbose output
 RUN npm run build
 
 # Stage 2: Backend with frontend static files
@@ -45,6 +45,9 @@ COPY . .
 
 # Copy frontend build files from stage 1
 COPY --from=frontend-builder /app/frontend/build/ ./app/static/
+
+# List contents to verify files were copied
+RUN ls -la ./app/static/ && ls -la ./app/static/static/ || echo "Static files not found"
 
 # Create non-root user
 RUN adduser --disabled-password --gecos '' appuser
