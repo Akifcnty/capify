@@ -23,7 +23,7 @@ bcrypt
 
 # Database
 Flask-Migrate
-psycopg2-binary==2.9.9  # PostgreSQL adapter
+psycopg2  # PostgreSQL adapter
 
 # Task queue
 celery==5.3.4
