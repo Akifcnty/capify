@@ -4,7 +4,7 @@ import os
 from datetime import datetime
 from ..utils.hashing import hash_email, hash_phone, hash_external_id
 from ..utils.logger import EventLogger
-import certifi
+from ..utils.ssl_config import get_ssl_verify_setting
 import urllib3
 
 # Disable SSL warnings for development
@@ -25,39 +25,83 @@ class FacebookCAPI:
         """
         try:
             # Prepare the event payload
-            payload = self._prepare_event_payload(event_data)
+            payload = {
+                "event_name": event_data.get("event_name"),
+                "event_time": event_data.get("event_time"),
+                "user_data": event_data.get("user_data", {}),
+                "custom_data": event_data.get("custom_data", {}),
+                "action_source": event_data.get("action_source", "website"),
+                "event_source_url": event_data.get("event_source_url", ""),
+                "access_token": self.access_token
+            }
             
-            # Send to Facebook
-            response = self._send_to_facebook(payload)
+            # Add test event code if present
+            if event_data.get("test_event_code"):
+                payload["test_event_code"] = event_data["test_event_code"]
             
-            # Log the event
-            self.logger.log_event(
-                user_id=user_id,
-                event_type=event_data.get('event_name'),
-                event_data=event_data,
-                success=True
+            # Get SSL verify setting
+            ssl_verify = get_ssl_verify_setting()
+            
+            # Send request to Facebook API
+            response = requests.post(
+                f"{self.base_url}/{self.pixel_id}/events",
+                json=payload,
+                timeout=30,
+                verify=ssl_verify,
+                headers={
+                    "Content-Type": "application/json",
+                    "User-Agent": "CAPIFY-CAPI/1.0"
+                }
             )
             
-            return {
-                'success': True,
-                'response': response,
-                'event_id': response.get('events_received', 0)
-            }
+            if response.status_code == 200:
+                result = response.json()
+                self.logger.log_event(
+                    event_name=event_data.get("event_name"),
+                    user_id=user_id,
+                    status="success",
+                    meta_response=result
+                )
+                return result
+            else:
+                error_msg = f"Facebook API error: {response.status_code} - {response.text}"
+                self.logger.log_event(
+                    event_name=event_data.get("event_name"),
+                    user_id=user_id,
+                    status="error",
+                    error=error_msg
+                )
+                return {"success": False, "error": error_msg}
+                
+        except requests.exceptions.SSLError as e:
+            error_msg = f"SSL Error: {str(e)}"
+            self.logger.log_event(
+                event_name=event_data.get("event_name"),
+                user_id=user_id,
+                status="error",
+                error=error_msg
+            )
+            return {"success": False, "error": error_msg}
+            
+        except requests.exceptions.RequestException as e:
+            error_msg = f"Request Error: {str(e)}"
+            self.logger.log_event(
+                event_name=event_data.get("event_name"),
+                user_id=user_id,
+                status="error",
+                error=error_msg
+            )
+            return {"success": False, "error": error_msg}
             
         except Exception as e:
-            # Log the error
+            error_msg = f"Unexpected Error: {str(e)}"
             self.logger.log_event(
+                event_name=event_data.get("event_name"),
                 user_id=user_id,
-                event_type=event_data.get('event_name'),
-                event_data=event_data,
-                success=False,
-                error_message=str(e)
+                status="error",
+                error=error_msg
             )
-            
-            return {
-                'success': False,
-                'error': str(e)
-            }
+            return {"success": False, "error": error_msg}
     
     def _prepare_event_payload(self, event_data):
         """

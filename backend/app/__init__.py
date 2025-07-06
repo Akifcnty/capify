@@ -91,6 +91,10 @@ def create_app(config_name=None):
     app.register_blueprint(logs_bp, url_prefix='/api/logs')
     app.register_blueprint(health_bp, url_prefix='')
     
+    # Configure SSL
+    from app.utils.ssl_config import configure_ssl
+    configure_ssl()
+    
     # Serve React app
     @app.route('/', defaults={'path': ''})
     @app.route('/<path:path>')

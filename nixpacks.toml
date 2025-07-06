@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["python311", "pip", "postgresql", "redis"]
+nixPkgs = ["python311", "pip", "postgresql", "redis", "ca-certificates"]
 
 [phases.install]
 cmds = [
@@ -10,7 +10,8 @@ cmds = [
 [phases.build]
 cmds = [
     "python -c \"import certifi; print('CA Bundle path:', certifi.where())\"",
-    "python -c \"import ssl; print('SSL version:', ssl.OPENSSL_VERSION)\""
+    "python -c \"import ssl; print('SSL version:', ssl.OPENSSL_VERSION)\"",
+    "python -c \"from app.utils.ssl_config import configure_ssl; configure_ssl()\""
 ]
 
 [start]
@@ -18,6 +19,4 @@ cmd = "cd backend && python3 wsgi.py"
 
 [variables]
 PYTHON_VERSION = "3.11"
-REQUESTS_CA_BUNDLE = "/etc/ssl/certs/ca-certificates.crt"
-SSL_CERT_FILE = "/etc/ssl/certs/ca-certificates.crt"
 FLASK_ENV = "production" 
