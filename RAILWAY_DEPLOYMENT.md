@@ -1,4 +1,4 @@
-# 🚀 Railway Deployment Rehberi
+# 🚀 Railway Deployment Rehberi - CAPIFY Project
 
 ## 📋 Adım Adım Deployment
 
@@ -18,28 +18,28 @@ Railway dashboard'da "Variables" sekmesine gidin ve şunları ekleyin:
 ```bash
 # Flask Configuration
 FLASK_ENV=production
-SECRET_KEY=your-very-secure-secret-key-here
+SECRET_KEY=capify-secret-key-2024-production-deploy
 FLASK_APP=run.py
 
 # Database (Railway PostgreSQL - otomatik eklenecek)
 DATABASE_URL=postgresql://username:password@host:port/database
 
-# CORS
-CORS_ORIGINS=https://your-app-name.railway.app,http://localhost:3000
+# CORS - CAPIFY frontend domain
+CORS_ORIGINS=https://capify-frontend.railway.app,https://capify.railway.app,http://localhost:3000
 
-# JWT
-JWT_SECRET_KEY=your-jwt-secret-key
+# JWT Configuration
+JWT_SECRET_KEY=capify-jwt-secret-2024-production
 JWT_ACCESS_TOKEN_EXPIRES=3600
 
-# Facebook API
+# Facebook API Configuration
 FACEBOOK_API_VERSION=v18.0
 FACEBOOK_GRAPH_URL=https://graph.facebook.com
 
-# Logging
+# Logging Configuration
 LOG_LEVEL=INFO
-LOG_FILE=logs/app.log
+LOG_FILE=logs/capify-app.log
 
-# Security
+# Security Headers
 SECURE_HEADERS_X_FRAME_OPTIONS=SAMEORIGIN
 SECURE_HEADERS_X_CONTENT_TYPE_OPTIONS=nosniff
 SECURE_HEADERS_X_XSS_PROTECTION=1; mode=block
@@ -49,97 +49,71 @@ REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
 SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
 SSL_CERT_DIR=/etc/ssl/certs
 
-# Railway specific
+# Redis Configuration (Railway Redis - opsiyonel)
+REDIS_URL=redis://username:password@host:port/database
+
+# Rate Limiting
+RATELIMIT_STORAGE_URL=memory://
+RATELIMIT_DEFAULT=100 per minute
+
+# Railway specific configuration
 PORT=5050
 PYTHON_VERSION=3.11
+
+# CAPIFY specific variables
+APP_NAME=CAPIFY
+APP_VERSION=2.0.0
+ENVIRONMENT=production
 ```
 
 ### 4. **PostgreSQL Database Ekleme**
-1. Railway dashboard'da "New" → "Database" → "PostgreSQL"
-2. Database'i projenize bağlayın
-3. `DATABASE_URL` environment variable'ı otomatik eklenecek
+1. Railway dashboard'da "New" → "Database" → "Add PostgreSQL"
+2. Database otomatik olarak `DATABASE_URL` environment variable'ı olarak eklenecek
 
-### 5. **Domain Ayarlama**
-1. "Settings" sekmesine gidin
-2. "Domains" bölümünde custom domain ekleyin
-3. SSL sertifikası otomatik olarak sağlanacak
+### 5. **Deployment Kontrolü**
+1. "Deployments" sekmesinde deployment durumunu kontrol edin
+2. Logs'ları kontrol ederek hata olup olmadığını görün
+3. Health check endpoint'i: `https://your-app.railway.app/api/health`
 
-## 🔧 Konfigürasyon Dosyaları
+### 6. **Domain Ayarlama**
+1. "Settings" sekmesinde "Domains" bölümüne gidin
+2. Otomatik domain'i kullanın veya custom domain ekleyin
+3. Frontend için ayrı bir service oluşturun
 
-### railway.json
-```json
-{
-  "$schema": "https://railway.app/railway.schema.json",
-  "build": {
-    "builder": "NIXPACKS"
-  },
-  "deploy": {
-    "startCommand": "cd backend && python -m pip install -r requirements.txt && python -m gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120",
-    "healthcheckPath": "/api/health",
-    "healthcheckTimeout": 100,
-    "restartPolicyType": "ON_FAILURE",
-    "restartPolicyMaxRetries": 10
-  },
-  "environments": {
-    "production": {
-      "variables": {
-        "FLASK_ENV": "production",
-        "PORT": "5050",
-        "PYTHON_VERSION": "3.11"
-      }
-    }
-  }
-}
+## 🔧 Önemli Notlar
+
+### Environment Variables Açıklamaları:
+- **SECRET_KEY**: Flask uygulaması için güvenli secret key
+- **JWT_SECRET_KEY**: JWT token'ları için güvenli secret key
+- **CORS_ORIGINS**: Frontend domain'leri (virgülle ayrılmış)
+- **REQUESTS_CA_BUNDLE**: Railway Linux environment'ında SSL sertifikaları
+- **DATABASE_URL**: Railway PostgreSQL otomatik olarak sağlar
+
+### SSL/TLS Konfigürasyonu:
+Railway Linux environment'ında SSL sertifikaları otomatik olarak `/etc/ssl/certs/ca-certificates.crt` konumunda bulunur.
+
+### Health Check:
+Uygulama başarıyla deploy edildikten sonra health check endpoint'i çalışmalı:
+```
+GET https://your-app.railway.app/api/health
 ```
 
-## 📊 Monitoring
+## 🚨 Sorun Giderme
 
-### Health Check
-- Endpoint: `https://your-app.railway.app/api/health`
-- Status: 200 OK = Healthy
+### Yaygın Hatalar:
+1. **Python command not found**: `PYTHON_VERSION=3.11` ayarlandığından emin olun
+2. **TLS certificate errors**: `REQUESTS_CA_BUNDLE` doğru ayarlandığından emin olun
+3. **Database connection errors**: PostgreSQL plugin eklendiğinden emin olun
+4. **CORS errors**: `CORS_ORIGINS` doğru domain'leri içerdiğinden emin olun
 
-### Logs
-- Railway dashboard'da "Deployments" sekmesinde logları görüntüleyin
-- Real-time log takibi mevcut
+### Log Kontrolü:
+Railway dashboard'da "Deployments" → "View Logs" ile detaylı log'ları görebilirsiniz.
 
-## 🚨 Troubleshooting
-
-### Build Hatası
-```bash
-# requirements.txt'de eksik paketler varsa
-pip install -r requirements.txt
-```
-
-### Python Command Not Found
-```bash
-# Railway'de python3 yerine python kullanın
-# railway.json'da PYTHON_VERSION=3.11 ayarlayın
-```
-
-### TLS Certificate Hatası
-```bash
-# Environment variables'da doğru certifi path'leri ayarlayın
-REQUESTS_CA_BUNDLE=/etc/ssl/certs/ca-certificates.crt
-SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt
-SSL_CERT_DIR=/etc/ssl/certs
-```
-
-### Database Bağlantı Hatası
-```bash
-# DATABASE_URL kontrol edin
-# PostgreSQL service'in çalıştığından emin olun
-```
-
-### Port Hatası
-```bash
-# Railway otomatik olarak PORT environment variable'ı sağlar
-# Kodunuzda os.environ.get('PORT', 5050) kullanın
-```
-
-## 💰 Maliyet
-- **Ücretsiz Tier**: $5 kredi/ay
-- **Tipik Kullanım**: ~$2-3/ay
-- **Ölçeklendirme**: İhtiyaç halinde artırılabilir
+## 📞 Destek
+Deployment sırasında sorun yaşarsanız:
+1. Railway logs'larını kontrol edin
+2. Environment variables'ların doğru olduğundan emin olun
+3. PostgreSQL plugin'inin eklendiğinden emin olun
 
 ## 🔄 Otomatik Deployment
 - GitHub'a push yaptığınızda otomatik deploy
