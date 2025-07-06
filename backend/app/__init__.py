@@ -82,12 +82,14 @@ def create_app(config_name=None):
     from app.routes.facebook import facebook_bp
     from app.routes.gtm_verification import gtm_verification_bp
     from app.routes.logs import logs_bp
+    from app.routes.health import health_bp
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(user_bp, url_prefix='/api/user')
     app.register_blueprint(facebook_bp, url_prefix='/api/facebook')
     app.register_blueprint(gtm_verification_bp, url_prefix='/api/user')
     app.register_blueprint(logs_bp, url_prefix='/api/logs')
+    app.register_blueprint(health_bp, url_prefix='')
     
     # Serve React app
     @app.route('/', defaults={'path': ''})

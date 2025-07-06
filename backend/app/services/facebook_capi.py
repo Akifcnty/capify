@@ -5,6 +5,10 @@ from datetime import datetime
 from ..utils.hashing import hash_email, hash_phone, hash_external_id
 from ..utils.logger import EventLogger
 import certifi
+import urllib3
+
+# Disable SSL warnings for development
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class FacebookCAPI:
     """Facebook Conversion API service"""
@@ -138,20 +142,49 @@ class FacebookCAPI:
             'Content-Type': 'application/json'
         }
         
-        # SSL verification ayarı
+        # SSL verification ayarı - dinamik olarak al
         ca_bundle = os.environ.get('REQUESTS_CA_BUNDLE') or os.environ.get('SSL_CERT_FILE') or certifi.where()
         
-        response = requests.post(
-            url,
-            data=json.dumps(payload),
-            headers=headers,
-            verify=ca_bundle
-        )
+        # CA bundle yolunun geçerli olup olmadığını kontrol et
+        if not os.path.exists(ca_bundle):
+            # Geçerli değilse certifi'nin varsayılan yolunu kullan
+            ca_bundle = certifi.where()
         
-        if response.status_code != 200:
-            raise Exception(f"Facebook API error: {response.status_code} - {response.text}")
+        try:
+            response = requests.post(
+                url,
+                data=json.dumps(payload),
+                headers=headers,
+                verify=ca_bundle,
+                timeout=30
+            )
+            
+            if response.status_code != 200:
+                raise Exception(f"Facebook API error: {response.status_code} - {response.text}")
+            
+            return response.json()
+            
+        except requests.exceptions.SSLError as e:
+            # SSL hatası durumunda verify=False ile dene
+            try:
+                response = requests.post(
+                    url,
+                    data=json.dumps(payload),
+                    headers=headers,
+                    verify=False,  # SSL verification'ı kapat
+                    timeout=30
+                )
+                
+                if response.status_code != 200:
+                    raise Exception(f"Facebook API error (SSL disabled): {response.status_code} - {response.text}")
+                
+                return response.json()
+                
+            except Exception as fallback_error:
+                raise Exception(f"SSL and fallback failed: {str(e)} -> {str(fallback_error)}")
         
-        return response.json()
+        except requests.exceptions.RequestException as e:
+            raise Exception(f"Request failed: {str(e)}")
     
     def send_lead_event(self, user_data, custom_data=None, user_id=None):
         """

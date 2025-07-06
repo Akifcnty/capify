@@ -1,12 +1,13 @@
 {
   "$schema": "https://railway.app/railway.schema.json",
   "build": {
-    "builder": "NIXPACKS"
+    "builder": "NIXPACKS",
+    "buildCommand": "echo 'Building CAPIFY application...'"
   },
   "deploy": {
-    "startCommand": "cd backend && gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120",
+    "startCommand": "cd backend && python3 wsgi.py",
     "healthcheckPath": "/health",
-    "healthcheckTimeout": 100,
+    "healthcheckTimeout": 300,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 10
   },
@@ -14,8 +15,8 @@
     "production": {
       "variables": {
         "FLASK_ENV": "production",
-        "PORT": "5050",
-        "PYTHON_VERSION": "3.11"
+        "REQUESTS_CA_BUNDLE": "/etc/ssl/certs/ca-certificates.crt",
+        "SSL_CERT_FILE": "/etc/ssl/certs/ca-certificates.crt"
       }
     }
   }

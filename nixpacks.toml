@@ -1,11 +1,23 @@
 [phases.setup]
-nixPkgs = ["python311", "python311Packages.pip"]
+nixPkgs = ["python311", "pip", "postgresql", "redis"]
 
 [phases.install]
-cmds = ["cd backend && pip install -r requirements.txt"]
+cmds = [
+    "pip install --upgrade pip",
+    "pip install -r requirements.txt"
+]
 
 [phases.build]
-cmds = ["echo 'Python build completed'"]
+cmds = [
+    "python -c \"import certifi; print('CA Bundle path:', certifi.where())\"",
+    "python -c \"import ssl; print('SSL version:', ssl.OPENSSL_VERSION)\""
+]
 
 [start]
-cmd = "cd backend && gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --timeout 120" 
+cmd = "cd backend && python3 wsgi.py"
+
+[variables]
+PYTHON_VERSION = "3.11"
+REQUESTS_CA_BUNDLE = "/etc/ssl/certs/ca-certificates.crt"
+SSL_CERT_FILE = "/etc/ssl/certs/ca-certificates.crt"
+FLASK_ENV = "production" 

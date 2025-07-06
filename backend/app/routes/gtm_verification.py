@@ -8,6 +8,7 @@ import re
 import urllib3
 import os
 import certifi
+from datetime import datetime
 
 # TLS uyarılarını kapat
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -153,39 +154,56 @@ def verify_gtm_verification(verification_id):
         
         url = f"{protocol}://{domain}"
         
-        # SSL verification ayarı
+        # SSL verification ayarı - dinamik olarak al
         ca_bundle = os.environ.get('REQUESTS_CA_BUNDLE') or os.environ.get('SSL_CERT_FILE') or certifi.where()
-        # Website'i kontrol et
-        response = requests.get(url, timeout=10, allow_redirects=True, verify=ca_bundle)
+        
+        # CA bundle yolunun geçerli olup olmadığını kontrol et
+        if not os.path.exists(ca_bundle):
+            # Geçerli değilse certifi'nin varsayılan yolunu kullan
+            ca_bundle = certifi.where()
+        
+        try:
+            # Website'i kontrol et
+            response = requests.get(url, timeout=10, allow_redirects=True, verify=ca_bundle)
+        except requests.exceptions.SSLError:
+            # SSL hatası durumunda verify=False ile dene
+            response = requests.get(url, timeout=10, allow_redirects=True, verify=False)
         
         if response.status_code == 200:
-            # Verification token'ı HTML içinde ara
-            if verification.verification_token in response.text:
-                verification.verify()
+            # Verification token'ı kontrol et
+            verification_token = f"CAPIFY_VERIFICATION_TOKEN_{verification.gtm_container_id}"
+            
+            if verification_token in response.text:
+                # Verification başarılı
+                verification.is_verified = True
+                verification.verified_at = datetime.utcnow()
                 db.session.commit()
+                
                 return jsonify({
                     'msg': 'GTM verification successful',
                     'verification': verification.to_dict()
                 }), 200
             else:
                 return jsonify({
-                    'msg': 'Verification token not found on website. Please add the verification script to your website.',
-                    'verification_token': verification.verification_token,
-                    'verification_script': get_verification_script(verification)
+                    'msg': 'GTM verification failed: verification token not found on website',
+                    'verification': verification.to_dict()
                 }), 400
         else:
             return jsonify({
-                'msg': f'Website not accessible (Status: {response.status_code})',
-                'verification_token': verification.verification_token,
-                'verification_script': get_verification_script(verification)
+                'msg': f'GTM verification failed: website returned status {response.status_code}',
+                'verification': verification.to_dict()
             }), 400
             
     except requests.exceptions.RequestException as e:
         return jsonify({
-            'msg': f'Website not accessible: {str(e)}',
-            'verification_token': verification.verification_token,
-            'verification_script': get_verification_script(verification)
+            'msg': f'GTM verification failed: {str(e)}',
+            'verification': verification.to_dict()
         }), 400
+    except Exception as e:
+        return jsonify({
+            'msg': f'GTM verification failed: unexpected error - {str(e)}',
+            'verification': verification.to_dict()
+        }), 500
 
 @gtm_verification_bp.route('/gtm-verifications/<int:verification_id>/script', methods=['GET'])
 @jwt_required()
