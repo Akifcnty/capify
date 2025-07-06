@@ -295,3 +295,4 @@ For support and questions:
 ---
 
 **CAPIFY** - Modern GTM & Facebook CAPI Integration Platform 
+# Railway deploy fix - Sun Jul  6 22:52:06 +03 2025
