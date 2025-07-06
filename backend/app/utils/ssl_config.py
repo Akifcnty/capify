@@ -1,51 +1,40 @@
 import os
-import requests
+import certifi
 import urllib3
 from flask import current_app
 
 def configure_ssl():
     """
-    Railway deployment için TLS/SSL konfigürasyonunu ayarlar
+    Configure SSL/TLS settings for requests
     """
-    try:
-        # Environment variables'dan SSL ayarlarını al
-        ca_bundle = os.environ.get('REQUESTS_CA_BUNDLE')
-        cert_file = os.environ.get('SSL_CERT_FILE')
-        
-        # Railway Linux environment için varsayılan değerler
-        if not ca_bundle:
-            ca_bundle = '/etc/ssl/certs/ca-certificates.crt'
-        if not cert_file:
-            cert_file = '/etc/ssl/certs/ca-certificates.crt'
-        
-        # Environment variables'ı ayarla
-        os.environ['REQUESTS_CA_BUNDLE'] = ca_bundle
-        os.environ['SSL_CERT_FILE'] = cert_file
-        
-        # Requests session'ı için SSL ayarları
-        if os.path.exists(ca_bundle):
-            requests.packages.urllib3.util.ssl_.DEFAULT_CERTS = ca_bundle
-        
-        # SSL warnings'ları bastır (production'da gerekirse)
-        if os.environ.get('FLASK_ENV') == 'production':
-            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        
-        current_app.logger.info(f"SSL Configuration: CA_BUNDLE={ca_bundle}, CERT_FILE={cert_file}")
-        
-    except Exception as e:
-        current_app.logger.error(f"SSL Configuration Error: {str(e)}")
-        # Fallback: varsayılan SSL davranışını kullan
-        pass
+    # Disable SSL warnings for development
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    
+    # Set CA bundle path with proper fallback
+    ca_bundle = os.environ.get('REQUESTS_CA_BUNDLE') or os.environ.get('SSL_CERT_FILE') or certifi.where()
+    
+    # Verify the path exists
+    if not os.path.exists(ca_bundle):
+        # Fallback to certifi's default path
+        ca_bundle = certifi.where()
+    
+    # Set environment variables
+    os.environ['REQUESTS_CA_BUNDLE'] = ca_bundle
+    os.environ['SSL_CERT_FILE'] = ca_bundle
+    
+    current_app.logger.info(f"SSL Configuration: CA_BUNDLE={ca_bundle}")
+    
+    return ca_bundle
 
-def get_ssl_verify():
+def get_verify_setting():
     """
-    SSL verification ayarını döndürür
+    Get the verify setting for requests
     """
-    try:
-        ca_bundle = os.environ.get('REQUESTS_CA_BUNDLE', '/etc/ssl/certs/ca-certificates.crt')
-        if os.path.exists(ca_bundle):
-            return ca_bundle
-        else:
-            return True  # Varsayılan SSL verification
-    except:
-        return True 
+    ca_bundle = os.environ.get('REQUESTS_CA_BUNDLE') or os.environ.get('SSL_CERT_FILE') or certifi.where()
+    
+    # Check if the path exists
+    if os.path.exists(ca_bundle):
+        return ca_bundle
+    else:
+        # If path doesn't exist, use certifi's default
+        return certifi.where() 
