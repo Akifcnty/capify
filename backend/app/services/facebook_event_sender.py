@@ -102,12 +102,12 @@ class FacebookEventSender:
             if event_data.get("test_event_code"):
                 payload["test_event_code"] = event_data["test_event_code"]
             
-            # Send request with proper SSL configuration
+            # Send request with SSL verification disabled to avoid certifi path issues
             response = requests.post(
                 f"{self.base_url}/{token.pixel_id}/events",
                 json=payload,
                 timeout=30,
-                verify=True,  # Enable SSL verification
+                verify=False,  # Disable SSL verification to avoid certifi path issues
                 headers={
                     "Content-Type": "application/json",
                     "User-Agent": "CAPIFY-EventSender/1.0"

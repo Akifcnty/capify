@@ -2,6 +2,40 @@
 
 CAPIFY, Google Tag Manager (GTM) ve Facebook Conversions API entegrasyonu sağlayan modern bir web uygulamasıdır. Sistem, GTM event'lerini alır ve Facebook Conversions API'ye iletir.
 
+## 🚀 Quick Start (Development)
+
+### Easy Start (Recommended)
+```bash
+# Start both services
+./start_services.sh
+
+# Stop both services
+./stop_services.sh
+```
+
+### Manual Setup
+1. **Backend Setup**
+   ```bash
+   cd backend
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   pip install -r requirements.txt
+   export REQUESTS_CA_BUNDLE=/Users/nb/Desktop/CAPIFY\ 2/backend/venv/lib/python3.13/site-packages/certifi/cacert.pem
+   python run.py
+   ```
+
+2. **Frontend Setup**
+   ```bash
+   cd frontend
+   npm install
+   npm start
+   ```
+
+**Access URLs:**
+- 🌐 Frontend: http://localhost:3000
+- 📊 Backend: http://localhost:5050
+- 🏥 Health Check: http://localhost:5050/health
+
 ## 🚀 Production Deployment
 
 ### Quick Start (Docker)

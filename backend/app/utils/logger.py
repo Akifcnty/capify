@@ -12,6 +12,10 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+def get_logger(name):
+    """Get a logger instance for the given name"""
+    return logging.getLogger(name)
+
 # Create logs directory if it doesn't exist
 logs_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'logs')
 os.makedirs(logs_dir, exist_ok=True)
