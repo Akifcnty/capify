@@ -1,3 +1,26 @@
+# 1. Frontend build için Node imajı
+FROM node:18 as frontend
+WORKDIR /app/frontend
+COPY ../frontend/package*.json ./
+RUN npm install
+COPY ../frontend ./
+RUN npm run build
+
+# 2. Backend için Python imajı
+FROM python:3.10-slim as backend
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 3. Frontend build dosyalarını backend'e kopyala
+COPY --from=frontend /app/frontend/build /app/app/static
+
+# 4. Backend kodunu kopyala
+COPY . /app/app
+
+# 5. Giriş komutu
+CMD ["gunicorn", "-b", "0.0.0.0:5050", "app.run:app"]
+
 # Use Python 3.11 slim image
 FROM python:3.11-slim
 

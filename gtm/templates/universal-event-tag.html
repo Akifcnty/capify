@@ -65,9 +65,9 @@
     
     // Fetch token info
     tokenInfoPromise = (async () => {
-      try {
-        const response = await fetch(`${CAPIFY_API_URL}/api/facebook/token-info/${containerId}`);
-        if (!response.ok) throw new Error('Token not found');
+    try {
+      const response = await fetch(`${CAPIFY_API_URL}/api/facebook/token-info/${containerId}`);
+      if (!response.ok) throw new Error('Token not found');
         const tokenInfo = await response.json();
         
         // Cache the token info
@@ -75,11 +75,11 @@
         console.log('Capify: Token info cached successfully');
         
         return tokenInfo;
-      } catch (error) {
-        console.error('Capify: Token info fetch failed:', error);
+    } catch (error) {
+      console.error('Capify: Token info fetch failed:', error);
         tokenInfoPromise = null; // Reset promise on error
-        return null;
-      }
+      return null;
+    }
     })();
     
     return await tokenInfoPromise;
