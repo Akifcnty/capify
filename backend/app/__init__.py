@@ -22,7 +22,7 @@ def create_app(config_name=None):
     if config_name is None:
         config_name = os.environ.get('FLASK_ENV', 'development')
     
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder="static", template_folder="static")
     
     # Configuration
     app.config.from_object(config[config_name])
@@ -63,7 +63,14 @@ def create_app(config_name=None):
     from app.utils.ssl_config import configure_ssl
     configure_ssl()
     
-
+    # React frontend'i sunan universal route
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve_react(path):
+        if path != "" and os.path.exists(os.path.join(app.static_folder, path)):
+            return send_from_directory(app.static_folder, path)
+        else:
+            return send_from_directory(app.static_folder, 'index.html')
     
     # JSON error handlers
     @app.errorhandler(404)
