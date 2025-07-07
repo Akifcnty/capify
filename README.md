@@ -233,12 +233,6 @@ cd capify
 
 ### 3. Free Hosting Options
 
-#### Railway
-- **Deploy:** Connect GitHub repository
-- **Database:** PostgreSQL addon
-- **SSL:** Automatic
-- **Cost:** $5 credit/month (usually sufficient)
-
 #### Render
 - **Deploy:** Connect GitHub repository  
 - **Database:** PostgreSQL addon

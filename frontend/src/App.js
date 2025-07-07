@@ -240,16 +240,16 @@ function App() {
       <Box sx={{ minHeight: '100vh', background: '#f8fafc' }}>
         <Navbar />
         <Box component="main" sx={{ flexGrow: 1 }}>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/dashboard" element={
-              <PrivateRoute>
-                <Dashboard />
-              </PrivateRoute>
-            } />
-            <Route path="*" element={<Login />} />
-          </Routes>
+        <Routes>
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/dashboard" element={
+            <PrivateRoute>
+              <Dashboard />
+            </PrivateRoute>
+          } />
+          <Route path="*" element={<Login />} />
+        </Routes>
         </Box>
       </Box>
     </Router>
